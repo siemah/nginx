@@ -236,3 +236,32 @@ in other words if you vist `http://localhost:8080` nginx serve you `http://local
 & second location directive is start with `~` which mean is a regular expression to math one 
 of those extensions `gif` or `jpg` or `png` & serve them from `/data/images` so if you visit 
 `http://localhost:8080/example.png` will work but not `http://localhost:8000/example.png`;
+
+### Some Handy Directives
+
+Let assume that your config file grows & annoyes you to handle it in one file so you can use separate 
+your configuration to several files & include it using `include` directive, which is of type 
+simple(not block directive), to put your configuration files following this syntaxe:
+
+```nginx
+# here you can write some configuration on main context
+
+# here include external config which contain http directive
+include http.conf
+
+# events directive
+events {} 
+```
+
+Another directive which can be in `main` context is `worker_processes` which accept as a 
+parametre a number or `auto` to specify the number of worker processes to use, however those 
+number can related to some condition like a number of CPU core, the number of hard disk 
+drives that store data, & load pattern.
+
+In some cases, you want to debug your server or see errors *nginx*  fired. Nginx give you 
+a possibility to specify a custom path to file who include those errors/debug logs using
+`error_log`, which accept 2 parametre the first one is the path to given file, if it dosn't 
+exist yet `nginx` will created for you & the second one is the type of logs to save in 
+that file it one of `debug`, `info`, `notice`, `warn`, `error`, `crit`, `alert`, or `emerg`, 
+if you specified `error` the log file will contain `error`, `crit`, `alert`, or `emerg` logs too. 
+This directive can be in thos contexts `main`, `http`, `mail`, `stream`, `server`, `location`.
