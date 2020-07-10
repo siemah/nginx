@@ -120,10 +120,72 @@ the socond one is block directive(called context also) which is similar to simpl
 it end with `{` & contain other directives(instructions).
 
 The way nginx & its modules work is determined in the configuration file. By default, the configuration 
-file is named nginx.conf and placed in the directory `/usr/local/nginx/conf`, `/etc/nginx`, 
+file is named nginx.conf & placed in the directory `/usr/local/nginx/conf`, `/etc/nginx`, 
 or `/usr/local/etc/nginx`. 
 
+### Serving a static files
 
+To create a static content server will edit the `nginx.conf` file located in one of 
+`/usr/local/nginx/conf`, `/etc/nginx`, or `/usr/local/etc/nginx`(for linux & MacOS users), but before 
+that will create 2 folders `/data/www` & `/data/images` to put html files & images respectively 
+for example put create a file index.html contain:
+
+```html
+<html>
+      <head>
+            <title>Serving static content with Nginx</title>
+      </head>
+      <body>
+            <h1>This file served with NGINX</h1>
+      </body>
+</html>
+```
+
+In `/data/images/` put some images like `example.png` to serve it later using nginx, then Open the 
+configuration file & replace its content with:
+
+```nginx
+http {
+      server {
+            listen 8080;
+
+            location / {
+                  root /data/www;
+            }
+
+            location /images {
+                  root /data;
+            }
+      }
+}
+
+events {} # ignore this directive but it required
+```
+
+Now you can re/start nginx with
+
+```shell
+# in case nginx was shut
+nginx
+# or see in next section for more detail to reload configuration
+nginx -s reload
+```
+
+visit [http://localhost:8080/](http://localhost:8080/) for html page or [http://localhost:8080/images/example.png](http://localhost:8080/images/example.png) for the image.
+So let explain what all that mean: 
+
+- `http` context(block directive contain other blocks) to serve `http` requests
+- `server` context to specify the configuration of virtual server
+- `listen` inform nginx the number of port to serve content
+- `location` sets configuration depending on a request URI, in our case there is 2 location blocks the 
+first one tell nginx to serve all request prefixed with `/` & the secondth to serve all request containing 
+`/images` in url for example serve all request of `http://localhost:8080/images/example.png`
+- `root` the path where to serve the request.
+- `events` required by nginx let ignore it for now.
+
+***Note***:
+For matching requests, the URI will be added to the path specified in the `root` directive, that is, to `/data/www`.
+If there are several matching location blocks nginx selects the one with the longest prefix.
 
 ### Reload new configuration
 
@@ -138,3 +200,39 @@ When reload the configuration nginx verify if the new configuration are valid, i
 the master process start new worker processes & send a signal to old ones to shutdown after 
 serving all current request & not accepting new connections. Otherwise the master process 
 roll back & keep using the old configuration. For more [control of nginx](https://nginx.org/en/docs/control.html).
+
+### Config a Proxy server
+
+To create a `proxy server` with nginx it realy simple by creating new directory `/data/proxy-server` 
+containing html files then edit the config file & add new `server` context to the previous configuration like:
+
+```nginx
+server {
+      listen 8888;
+      root /data/proxy-server;
+      location / {}
+}
+```
+
+that mean, serve a request from port `8888` & files from `/data/proxy-server` then edit the server 
+contexts from previous configuration to be:
+
+```nginx
+server {
+      listen 8080;
+      location {
+            proxy_pass http://localhost:8888;
+      }
+
+      location ~ \.(gif|jpg|png)$ {
+            root /data/images;
+      }
+}
+```
+
+if you notice we add new directive `proxy_pass`, this send an instruction to nginx to inform it 
+to proxy all requests from `http://localhost:8080` to the new url `http://localhost:8000`, 
+in other words if you vist `http://localhost:8080` nginx serve you `http://localhost:8000`,
+& second location directive is start with `~` which mean is a regular expression to math one 
+of those extensions `gif` or `jpg` or `png` & serve them from `/data/images` so if you visit 
+`http://localhost:8080/example.png` will work but not `http://localhost:8000/example.png`;
