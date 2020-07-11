@@ -1,4 +1,4 @@
-# NGINX
+# *NGINX* configuration simplified for(The ultimate getting started)
 
 ## About NGINX
 
@@ -261,7 +261,68 @@ drives that store data, & load pattern.
 In some cases, you want to debug your server or see errors *nginx*  fired. Nginx give you 
 a possibility to specify a custom path to file who include those errors/debug logs using
 `error_log`, which accept 2 parametre the first one is the path to given file, if it dosn't 
-exist yet `nginx` will created for you & the second one is the type of logs to save in 
-that file it one of `debug`, `info`, `notice`, `warn`, `error`, `crit`, `alert`, or `emerg`, 
-if you specified `error` the log file will contain `error`, `crit`, `alert`, or `emerg` logs too. 
+exist yet `nginx` will created for you(not the folder just files) & the second one is the type 
+of logs to save in that file it one of `debug`, `info`, `notice`, `warn`, `error`, `crit`, `alert`, or 
+`emerg`, if you specified `error` the log file will contain `error`, `crit`, `alert`, or `emerg` logs too. 
 This directive can be in thos contexts `main`, `http`, `mail`, `stream`, `server`, `location`.
+
+## Caching with NGINX
+
+Caching is a weapon with 2 side, it can be good & bad if you dont know how to exploite it. Caching 
+can enhance your application performance & take it to the next level, so in this section will use 
+`nginx` to cache some content. To do that its very simple using 3 directives. First, let create a proxy 
+server with:
+
+```nginx
+http {
+	server {
+		listen 8888;
+		location / {
+		      root /Users/mac/Desktop/nginx/proxy-server;
+		}
+	}
+
+	server {
+		listen 8080;
+		location / {
+                  proxy_pass http://localhost:8888;
+		}
+	}
+}
+
+events {}
+```
+
+for now there is nothin new. Second, let user [proxy_cache_path](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache_path) to define the path where save data, size of cache, max size of cache so add the following configuration in http context before 2nd server context:
+
+```nginx
+#...
+proxy_cache_path /data/cache levels=1:2 max_size=1g keys_zone=app_cache_zone_name:10m use_temp_path=off inactive=60m:
+# ...
+```
+
+this inform nginx to save cache in `/data/cache` or create it if not exist with 2 levels of subfolders
+(best practice is to kepp this on `1:2` or less) with the maximum size of 1 Giga, if it exceed nginx will 
+remove the least used cached data, then save the cache meta data on the zone `app_cache_zone_name` with 
+size of 10 Miga. The content cached with `nginx` created imediatly without passing with temporare folder 
+when using `use_temp_path=off` param & refresh those cached content if not reached in 60 minutes. Howeer 
+this cache not enabled yet, to do so will add those directive in 2nd `server` context:
+
+```nginx
+server {
+            listen 8080;
+            location / {
+                  proxy_cache app_cache_zone_name;
+                  proxy_cache_valid 200 10m;
+                  proxy_pass http://localhost:8888;
+            }
+	}
+```
+those new directives mean to enable the caching zone `app_cache_zone_name` used as param of [proxy_cache](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache) 
+& [proxy_cache_valid](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache_valid) to inform `nginx` to cache all http requests content served with status of **200** for 10 minutes. Finally 
+you can reload the configuration by sending a signal of `HUP` using:
+
+```nginx 
+nginx -s reload
+```
+& just like that you implemented a caching using `nginx` to emprove your app performance.
