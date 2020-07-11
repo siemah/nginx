@@ -326,3 +326,27 @@ you can reload the configuration by sending a signal of `HUP` using:
 nginx -s reload
 ```
 & just like that you implemented a caching using `nginx` to emprove your app performance.
+
+### Serving caching content when servers went down
+
+Some times errors happen or server goes down & your server are not accessible then you app 
+users(customers) see an ugly error message informing them the app are down & not reachable 
+in this moment or maybe your app got a spike trafic, to avoid this situation you can use cache 
+to serve a content for users using [proxy_cache_use_state](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache_use_stale) where your enabling you cache like:
+
+```nginx
+# ...
+
+      location / {
+            proxy_cache app_cache_zone_name;
+            proxy_cache_valid 200 10m;
+            proxy_cache_use_stale error timeout http_500 http_501 http_504;
+            proxy_pass http://localhost:8888;
+      }
+
+# ...
+```
+
+this new directive inform `nginx` to serve a cached content in case of error with `error` param in proxied 
+servers or when all worker processes are busy serving other user via `timeout` or when proxied servers 
+responsd with status `500`, `501` & `504`.
