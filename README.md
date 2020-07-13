@@ -347,6 +347,35 @@ to serve a content for users using [proxy_cache_use_state](http://nginx.org/en/d
 # ...
 ```
 
-this new directive inform `nginx` to serve a cached content in case of error with `error` param in proxied 
+this directive inform `nginx` to serve a cached content in case of error ,by adding `error`, param in proxied 
 servers or when all worker processes are busy serving other user via `timeout` or when proxied servers 
 responsd with status `500`, `501` & `504`.
+
+### Other directives for caching
+
+There is many directives you can use to enhance & customize `nginx` to cache 
+requests & content of you web application. In this section will illustrate 
+some of those directives might helps you
+
+- `proxy_cache_keys` defines a key for caching, for example `proxy_cache_key "$host$request_uri $cookie_user";` 
+because `nginx` use the uri of request(hashed using md5) to cache the requests & this directive inform 
+`nginx` the cache name of each request so be carefull when using it, it can be tricky if you missed & 
+cache 2 different requests with in one directory & cache name.
+- `proxy_cache_min_uses` accept as param a `number` which is a number of requests received to cache it 
+as an example `proxy_cache_min_uses 3` instructs `nginx` to cache content when it receive 3 requests to that uri.
+- `proxy_cache_methods` to specify which `http` request method will cache, so it value will be an http method.
+- `proxy_cache_bypasse` used to bypasse cache referred to as “punching a hole” 
+& get content from origin server rather than cache
+
+***Note***:
+
+You can send a custom header to inform if the response content served from cache using `add_header` 
+directive & `$upstream_cache_status` global variable at `location` context as following:
+
+```nginx
+add_header X-Cache-Status $upstream_cache_status;
+```
+
+the response will contain `X-Cache-Status` header with one of `MISS`, `BYPASS`, `EXPIRED`, `STALE` or 
+`HIT` where means respectivelly not served from cache, passed(no cache for this request), cache are expired, 
+serve cache version where the proxied server are down/timeout & `HIT` server from cache. For more details & FAQ you can [visit this source](https://www.nginx.com/blog/nginx-caching-guide/#Frequently-Asked-Questions-(FAQ)).
